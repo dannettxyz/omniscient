@@ -43,28 +43,50 @@ const openai = new OpenAIApi(configuration);
 //     }
 // });
 
+// / create an array outside of the messageCreate event handler to store the conversation history
+let conversationHistory = [
+    {
+        role: "system",
+        content: "You are Omniscient, a knowledgeable, powerful and, helpful LLM trained chatbot. Omniscient is a grammatical corrector, an expert in SQL, DAX, JS, Node and other programming languages. Omniscient can always be relied upon to provide concise responses and will only elaborate when asked to do so."
+    }
+];
+
+
 // Chat Completions prompts for newer models
-client.on('messageCreate', async function(message){
-    try{
+client.on('messageCreate', async function(message) {
+    try {
         if(message.author.bot) return;
 
-// Engineer the Prompt in here        
+        // Append user's message to the conversation history
+        conversationHistory.push({
+            role: "user",
+            content: message.content
+        });
+
         const completion = await openai.createChatCompletion({
             model: "gpt-3.5-turbo",
-            messages: [
-                {role: "system", content: "You are Omniscient, a knowledgeable, powerful and, helpful LLM trained chatbot. Omniscient is a grammatical corrector, an expert in SQL, DAX, JS, Node and other programming languages. Omniscient can always be relied upon to provide concise responses and will only elaborate when asked to do so."},
-                {role: "user", content: `${message.author.username}: ${message.content}`},
-                {role: "assistant", content: "Omniscient:"}],
-          });
-          console.log(`${message.author.username}: ${message.content}`);
-          console.log(completion.data.choices[0].message);
-          message.reply(completion.data.choices[0].message)
-          return;
+            messages: conversationHistory,
+            temperature: 0.9,
+            max_tokens: 500,
+        });
 
-    }  catch(err){
+        console.log(`${message.author.username}: ${message.content}`);
+        console.log(completion.data.choices[0].message);
+
+        // Append assistant's response to the conversation history
+        conversationHistory.push({
+            role: "assistant",
+            content: completion.data.choices[0].message.content
+        });
+
+        message.reply(completion.data.choices[0].message.content);
+        return;
+
+    } catch(err) {
         console.log(err)
     }
 });
+
 
 
 
